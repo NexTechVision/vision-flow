@@ -65,11 +65,11 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
         <div className="flex items-center overflow-hidden">
           {isOpen ? (
             <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              NexTechVision
+              VisionFlow
             </h1>
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-              N
+              V
             </span>
           )}
         </div>

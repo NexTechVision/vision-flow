@@ -4,7 +4,7 @@ import { Bell, Search, Menu, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Avatar from "./Avatar";
-import { currentUser, notifications } from "../data/mockData";
+import { currentUser, notifications, tasks } from "../data/mockData";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -18,14 +18,42 @@ interface NavbarProps {
 const Navbar = ({ toggleSidebar }: NavbarProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
     description: "",
-    key: ""
+    key: "",
+    deadline: ""
   });
   const navigate = useNavigate();
   
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    
+    if (term.trim().length > 1) {
+      // Filter tasks based on the search term
+      const filteredTasks = tasks.filter(task => 
+        task.title.toLowerCase().includes(term.toLowerCase()) || 
+        task.description.toLowerCase().includes(term.toLowerCase())
+      );
+      
+      setSearchResults(filteredTasks);
+      setShowSearchResults(true);
+    } else {
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleSearchResultClick = (taskId: string) => {
+    setShowSearchResults(false);
+    setSearchTerm("");
+    navigate(`/tasks/${taskId}`);
+  };
 
   const handleNewProject = () => {
     if (!newProject.name.trim() || !newProject.key.trim()) {
@@ -47,7 +75,8 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
     setNewProject({
       name: "",
       description: "",
-      key: ""
+      key: "",
+      deadline: ""
     });
     setIsNewProjectDialogOpen(false);
     
@@ -67,9 +96,26 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
         <div className="hidden md:flex md:w-96 relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder="Search tasks..."
             className="pl-8 bg-secondary"
+            value={searchTerm}
+            onChange={handleSearch}
           />
+          
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="absolute top-full mt-1 left-0 right-0 z-50 bg-popover border rounded-md shadow-md max-h-64 overflow-y-auto">
+              {searchResults.map(task => (
+                <div 
+                  key={task.id}
+                  className="px-3 py-2 hover:bg-accent cursor-pointer"
+                  onClick={() => handleSearchResultClick(task.id)}
+                >
+                  <div className="font-medium text-sm">{task.title}</div>
+                  <div className="text-xs text-muted-foreground truncate">{task.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
@@ -176,6 +222,15 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
                   maxLength={5}
                 />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="projectDeadline">Deadline</Label>
+              <Input 
+                id="projectDeadline" 
+                type="date"
+                value={newProject.deadline}
+                onChange={(e) => setNewProject({...newProject, deadline: e.target.value})}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="projectDescription">Description</Label>
