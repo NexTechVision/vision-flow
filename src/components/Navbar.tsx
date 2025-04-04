@@ -6,6 +6,10 @@ import { Input } from "@/components/ui/input";
 import Avatar from "./Avatar";
 import { currentUser, notifications } from "../data/mockData";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 
 interface NavbarProps {
   toggleSidebar: () => void;
@@ -13,9 +17,43 @@ interface NavbarProps {
 
 const Navbar = ({ toggleSidebar }: NavbarProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [newProject, setNewProject] = useState({
+    name: "",
+    description: "",
+    key: ""
+  });
   const navigate = useNavigate();
   
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleNewProject = () => {
+    if (!newProject.name.trim() || !newProject.key.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Project name and key are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // In a real app, this would be an API call to create a project
+    toast({
+      title: "Project created",
+      description: `"${newProject.name}" has been created successfully`
+    });
+    
+    // Reset form and close dialog
+    setNewProject({
+      name: "",
+      description: "",
+      key: ""
+    });
+    setIsNewProjectDialogOpen(false);
+    
+    // Navigate to dashboard to see the new project
+    navigate('/');
+  };
 
   return (
     <header className="bg-background z-10 border-b">
@@ -39,7 +77,7 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
             variant="outline" 
             size="sm" 
             className="hidden md:flex items-center gap-1"
-            onClick={() => navigate('/projects/new')}
+            onClick={() => setIsNewProjectDialogOpen(true)}
           >
             <Plus className="h-4 w-4" />
             <span>New Project</span>
@@ -111,6 +149,50 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
           <Avatar user={currentUser} size="sm" showStatus />
         </div>
       </div>
+
+      <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3">
+                <Label htmlFor="projectName">Project Name</Label>
+                <Input 
+                  id="projectName" 
+                  placeholder="Project name" 
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="projectKey">Key</Label>
+                <Input 
+                  id="projectKey" 
+                  placeholder="KEY" 
+                  value={newProject.key}
+                  onChange={(e) => setNewProject({...newProject, key: e.target.value.toUpperCase()})}
+                  maxLength={5}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="projectDescription">Description</Label>
+              <Textarea 
+                id="projectDescription" 
+                placeholder="Project description" 
+                value={newProject.description}
+                onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewProjectDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleNewProject}>Create Project</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

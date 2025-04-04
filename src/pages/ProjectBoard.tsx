@@ -1,24 +1,34 @@
-
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { projects, getProjectById, tasks } from "../data/mockData";
 import TaskCard from "../components/TaskCard";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Download, Users } from "lucide-react";
+import { Plus, Filter, Download, Users, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ProjectBoard = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const project = getProjectById(id || "");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [board, setBoard] = useState(project?.board || { columns: {}, columnOrder: [] });
+  const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    status: "",
+    priority: "medium"
+  });
   
   if (!project) {
     return (
@@ -127,6 +137,32 @@ const ProjectBoard = () => {
     }, 1500);
   };
 
+  const handleAddTask = () => {
+    if (!newTask.title.trim()) {
+      toast({
+        title: "Please enter a title",
+        description: "Task title is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In a real app, this would be an API call to create a task
+    toast({
+      title: "Task created",
+      description: `"${newTask.title}" has been added to the project`
+    });
+
+    // Reset form and close dialog
+    setNewTask({
+      title: "",
+      description: "",
+      status: "",
+      priority: "medium"
+    });
+    setIsAddTaskDialogOpen(false);
+  };
+
   return (
     <>
       <Helmet>
@@ -137,6 +173,15 @@ const ProjectBoard = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/')}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
               <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
               <span className="px-2 py-1 text-xs font-medium bg-secondary rounded-md">
                 {project.key}
@@ -165,12 +210,12 @@ const ProjectBoard = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => navigate('/teams')}>
               <Users className="h-4 w-4 mr-2" />
               Team
             </Button>
             
-            <Button>
+            <Button onClick={() => setIsAddTaskDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Task
             </Button>
@@ -247,6 +292,10 @@ const ProjectBoard = () => {
                           <Button 
                             variant="ghost" 
                             className="w-full justify-start text-muted-foreground mt-2"
+                            onClick={() => {
+                              setNewTask({...newTask, status: column.id});
+                              setIsAddTaskDialogOpen(true);
+                            }}
                           >
                             <Plus className="h-4 w-4 mr-2" />
                             Add task
@@ -273,6 +322,74 @@ const ProjectBoard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input 
+                id="title" 
+                placeholder="Task title" 
+                value={newTask.title}
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea 
+                id="description" 
+                placeholder="Task description" 
+                value={newTask.description}
+                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={newTask.status} 
+                  onValueChange={(value) => setNewTask({...newTask, status: value})}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {board.columnOrder.map((columnId) => (
+                      <SelectItem key={columnId} value={columnId}>
+                        {board.columns[columnId].title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select 
+                  value={newTask.priority}
+                  onValueChange={(value) => setNewTask({...newTask, priority: value})}
+                >
+                  <SelectTrigger id="priority">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddTaskDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddTask}>Create Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

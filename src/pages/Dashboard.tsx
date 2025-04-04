@@ -10,10 +10,23 @@ import TaskCard from "../components/TaskCard";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Activity, Clock, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    projectId: "",
+    priority: "medium"
+  });
 
   // Get current user's tasks
   const myTasks = tasks.filter(task => task.assigneeId === currentUser.id);
@@ -29,6 +42,32 @@ const Dashboard = () => {
   const recentActivity = [...tasks]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
+
+  const handleCreateTask = () => {
+    if (!newTask.title.trim() || !newTask.projectId) {
+      toast({
+        title: "Missing information",
+        description: "Task title and project are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // In a real app, this would be an API call to create a task
+    toast({
+      title: "Task created",
+      description: `"${newTask.title}" has been added successfully`
+    });
+    
+    // Reset form and close dialog
+    setNewTask({
+      title: "",
+      description: "",
+      projectId: "",
+      priority: "medium"
+    });
+    setIsNewTaskDialogOpen(false);
+  };
 
   return (
     <>
@@ -51,7 +90,7 @@ const Dashboard = () => {
             >
               New Project
             </Button>
-            <Button onClick={() => navigate("/tasks/new")}>New Task</Button>
+            <Button onClick={() => setIsNewTaskDialogOpen(true)}>New Task</Button>
           </div>
         </div>
 
@@ -162,7 +201,7 @@ const Dashboard = () => {
                   <Button
                     variant="outline"
                     className="mt-4"
-                    onClick={() => navigate("/tasks/new")}
+                    onClick={() => setIsNewTaskDialogOpen(true)}
                   >
                     Create a new task
                   </Button>
@@ -221,6 +260,74 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={isNewTaskDialogOpen} onOpenChange={setIsNewTaskDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Task</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="taskTitle">Title</Label>
+              <Input 
+                id="taskTitle" 
+                placeholder="Task title" 
+                value={newTask.title}
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="taskDescription">Description</Label>
+              <Textarea 
+                id="taskDescription" 
+                placeholder="Task description" 
+                value={newTask.description}
+                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="taskProject">Project</Label>
+                <Select 
+                  value={newTask.projectId} 
+                  onValueChange={(value) => setNewTask({...newTask, projectId: value})}
+                >
+                  <SelectTrigger id="taskProject">
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="taskPriority">Priority</Label>
+                <Select 
+                  value={newTask.priority}
+                  onValueChange={(value) => setNewTask({...newTask, priority: value})}
+                >
+                  <SelectTrigger id="taskPriority">
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewTaskDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateTask}>Create Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
