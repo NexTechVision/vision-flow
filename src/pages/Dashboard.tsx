@@ -21,11 +21,17 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
     projectId: "",
     priority: "medium"
+  });
+  const [newProject, setNewProject] = useState({
+    name: "",
+    description: "",
+    key: ""
   });
 
   // Get current user's tasks
@@ -69,6 +75,31 @@ const Dashboard = () => {
     setIsNewTaskDialogOpen(false);
   };
 
+  const handleCreateProject = () => {
+    if (!newProject.name.trim() || !newProject.key.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Project name and key are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // In a real app, this would be an API call to create a project
+    toast({
+      title: "Project created",
+      description: `"${newProject.name}" has been created successfully`
+    });
+    
+    // Reset form and close dialog
+    setNewProject({
+      name: "",
+      description: "",
+      key: ""
+    });
+    setIsNewProjectDialogOpen(false);
+  };
+
   return (
     <>
       <Helmet>
@@ -86,7 +117,7 @@ const Dashboard = () => {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={() => navigate("/projects/new")}
+              onClick={() => setIsNewProjectDialogOpen(true)}
             >
               New Project
             </Button>
@@ -325,6 +356,50 @@ const Dashboard = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNewTaskDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateTask}>Create Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3">
+                <Label htmlFor="projectName">Project Name</Label>
+                <Input 
+                  id="projectName" 
+                  placeholder="Project name" 
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="projectKey">Key</Label>
+                <Input 
+                  id="projectKey" 
+                  placeholder="KEY" 
+                  value={newProject.key}
+                  onChange={(e) => setNewProject({...newProject, key: e.target.value.toUpperCase()})}
+                  maxLength={5}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="projectDescription">Description</Label>
+              <Textarea 
+                id="projectDescription" 
+                placeholder="Project description" 
+                value={newProject.description}
+                onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewProjectDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateProject}>Create Project</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
