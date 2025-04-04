@@ -1,58 +1,68 @@
 
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import Layout from "../components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { tasks, projects } from "../data/mockData";
+import reportRepository, { ReportData } from "../repositories/report-repository";
+import { toast } from "@/hooks/use-toast";
 import { Status, Priority } from "../types"; 
 
 const Reports = () => {
-  // Calculate tasks by status data
-  const statusCounts = tasks.reduce((acc: Record<string, number>, task) => {
-    acc[task.status] = (acc[task.status] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const statusData = Object.entries(statusCounts).map(([name, value]) => ({
-    name,
-    value
-  }));
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Calculate tasks by priority data
-  const priorityCounts = tasks.reduce((acc: Record<string, number>, task) => {
-    acc[task.priority] = (acc[task.priority] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const priorityData = Object.entries(priorityCounts).map(([name, value]) => ({
-    name,
-    value
-  }));
-
-  // Sample project progress data
-  const projectProgressData = projects.map(project => {
-    const projectTasks = tasks.filter(task => task.projectId === project.id);
-    const completedTasks = projectTasks.filter(task => task.status === 'Done').length;
-    const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
-    
-    return {
-      name: project.name,
-      progress,
-      tasks: projectTasks.length
+  useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await reportRepository.getReportData();
+        setReportData(data);
+      } catch (error) {
+        console.error("Failed to fetch report data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load report data. Please try again later.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
-  });
 
-  // Sample time series data for task completion over time
-  const timeSeriesData = [
-    { name: 'Jan', completed: 4 },
-    { name: 'Feb', completed: 7 },
-    { name: 'Mar', completed: 12 },
-    { name: 'Apr', completed: 9 },
-    { name: 'May', completed: 15 },
-    { name: 'Jun', completed: 18 },
-  ];
+    fetchReportData();
+  }, []);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="p-6 md:p-8">
+          <Helmet>
+            <title>Reports | VisionFlow</title>
+          </Helmet>
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Reports</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="h-5 w-1/3 bg-secondary animate-pulse rounded"></div>
+                  <div className="h-4 w-2/3 bg-secondary animate-pulse rounded opacity-70 mt-2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] flex items-center justify-center">
+                    <div className="h-40 w-40 rounded-full border-4 border-secondary border-t-primary animate-spin"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -73,7 +83,7 @@ const Reports = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={statusData}
+                      data={reportData?.tasksByStatus}
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
@@ -81,7 +91,7 @@ const Reports = () => {
                       dataKey="value"
                       label={({name, value}) => `${name}: ${value}`}
                     >
-                      {statusData.map((entry, index) => (
+                      {reportData?.tasksByStatus.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -102,7 +112,7 @@ const Reports = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={priorityData}
+                    data={reportData?.tasksByPriority}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -126,7 +136,7 @@ const Reports = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={projectProgressData}
+                    data={reportData?.projectProgress}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                     layout="vertical"
                   >
@@ -151,7 +161,7 @@ const Reports = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={timeSeriesData}
+                    data={reportData?.taskCompletionTrend}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
