@@ -1,4 +1,3 @@
-
 import { Helmet } from "react-helmet";
 import Layout from "../components/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,8 +11,13 @@ import { currentUser } from "../data/mockData";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import Avatar from "../components/Avatar";
+import { useApi } from "@/contexts/ApiContext";
+import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 
 const Settings = () => {
+  const { logout } = useApi();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState({
     name: currentUser.name,
     email: currentUser.email,
@@ -45,6 +49,23 @@ const Settings = () => {
       title: "Preferences updated",
       description: `${key} has been ${value ? 'enabled' : 'disabled'}.`
     });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out."
+      });
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging you out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -117,7 +138,11 @@ const Settings = () => {
                     />
                   </div>
                   
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={handleLogout} className="gap-2">
+                      <LogOut size={16} />
+                      Logout
+                    </Button>
                     <Button type="submit">Save Changes</Button>
                   </div>
                 </form>
